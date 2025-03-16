@@ -35,7 +35,7 @@ def local_path(path):
     current = os.path.abspath(os.getcwd())
     return os.path.abspath(os.path.join(current, path))
 
-WOLFSSL_SRC_PATH = local_path("lib/wolfssl")
+WOLFSSL_SRC_PATH = local_path("wolfssl")
 
 def wolfssl_inc_dirs(local_wolfssl=None, fips=False):
     """Returns the wolfSSL include directories needed to build the CFFI.
@@ -128,42 +128,16 @@ def chdir(new_path, mkdir=False):
 def checkout_version(version):
     """ Ensure that we have the right version.
     """
-    with chdir(WOLFSSL_SRC_PATH):
-        current = ""
-        try:
-            current = subprocess.check_output(
-                ["git", "describe", "--all", "--exact-match"]
-            ).strip().decode().split('/')[-1]
-        except:
-            pass
-
-        if current != version:
-            tags = subprocess.check_output(
-                ["git", "tag"]
-            ).strip().decode().split("\n")
-
-            if version != "master" and version not in tags:
-                call("git fetch --depth=1 origin tag {}".format(version))
-
-            call("git checkout --force {}".format(version))
-
-            return True  # rebuild needed
-
     return False
 
 
 def ensure_wolfssl_src(ref):
-    """ Ensure that wolfssl sources are presents and up-to-date.
-    """
+    if not os.path.isdir(WOLFSSL_SRC_PATH):
+        raise FileNotFoundError(1111,
 
-    if not os.path.isdir("lib"):
-        os.mkdir("lib")
-        with chdir("lib"):
-            subprocess.run(["git", "clone", "--depth=1", "https://github.com/wolfssl/wolfssl"])
-
-    if not os.path.isdir(os.path.join(WOLFSSL_SRC_PATH, "wolfssl")):
-        subprocess.run(["git", "submodule", "update", "--init", "--depth=1"])
-
+            "wolfSSL source not found at '{}'. Please include the vendor wolfSSL source.".format(WOLFSSL_SRC_PATH)
+        )
+    # Optionally, check the version if needed.
     return checkout_version(version)
 
 
@@ -267,8 +241,6 @@ def make(configure_flags, fips=False):
             call("cmake --install . --config Release")
     else:
         with chdir(WOLFSSL_SRC_PATH):
-            call("git clean -fdX")
-
             try:
                 call("./autogen.sh")
             except subprocess.CalledProcessError:

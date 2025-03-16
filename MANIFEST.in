@@ -8,5 +8,6 @@ include windows/non_fips/user_settings.h
 
 recursive-include tests *
 recursive-include requirements *
+recursive-include wolfssl *
 
 recursive-include docs *.rst conf.py Makefile
